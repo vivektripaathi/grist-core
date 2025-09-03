@@ -8,6 +8,7 @@ import {EXTENSIONS_IMPORTABLE_AS_DOC} from 'app/client/lib/uploads';
 import {openFilePicker} from 'app/client/ui/FileDialog';
 import {byteString} from 'app/common/gutil';
 import {uploadFiles} from 'app/client/lib/uploads';
+import {validateFilesForImport} from 'app/client/lib/ClientImportFileValidation';
 
 /**
  * Imports a document and returns its docId, or null if no files were selected.
@@ -24,6 +25,21 @@ export async function docImport(app: AppModel, workspaceId: number|"unsaved"): P
   });
 
   if (!files.length) { return null; }
+  const validationResult = validateFilesForImport(files, {
+    allowSpecialCharsInFilename: false,
+    allowSpacesInFilename: false
+  });
+
+  if (!validationResult.isValid) {
+    const errorMessage = [
+      'Import validation failed:',
+      ...validationResult.errors.map(error => `• ${error}`)
+    ].join('\n');
+
+    // Report the validation error to the user
+    reportError(new Error(errorMessage));
+    return null;
+  }
 
   return await fileImport(files, app, workspaceId);
 }
