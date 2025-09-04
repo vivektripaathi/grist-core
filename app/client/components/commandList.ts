@@ -101,6 +101,7 @@ export type CommandName =
   | 'restoreSection'
   | 'deleteCollapsedSection'
   | 'duplicateRows'
+  | 'convertToNewSheet'
   | 'sortAsc'
   | 'sortDesc'
   | 'showPopup'
@@ -636,6 +637,10 @@ export const groups: CommendGroupDef[] = [{
       name: 'duplicateRows',
       keys: ['Mod+Shift+d'],
       desc: 'Duplicate selected rows'
+    }, {
+      name: 'convertToNewSheet',
+      keys: [],
+      desc: 'Convert selected area to new sheet'
     }, {
       name: 'showColumns',
       keys: [],

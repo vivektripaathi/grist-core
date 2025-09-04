@@ -80,6 +80,16 @@ export function CellContextMenu(cellOptions: ICellContextMenu, colOptions: IMult
     ),
     menuItemCmd(allCommands.duplicateRows, t("Duplicate rows", {count: numRows}),
         dom.cls('disabled', disableInsert || numRows === 0)),
+
+    // Only show "Convert to New Sheet" if there's a meaningful selection (multiple cells)
+    ...(
+      (numRows > 1 || numColumns > 1) ? [
+        menuDivider(),
+        menuItemCmd(allCommands.convertToNewSheet, t("Convert to New Sheet"),
+          dom.cls('disabled', isReadonly || (numRows === 0 && numColumns === 0)))
+      ] : []
+    ),
+
     menuItemCmd(allCommands.insertFieldBefore, t("Insert column to the left"),
                 disableForReadonlyView),
     menuItemCmd(allCommands.insertFieldAfter, t("Insert column to the right"),

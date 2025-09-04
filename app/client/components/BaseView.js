@@ -258,6 +258,7 @@ BaseView.commonCommands = {
   copyLink: function() { this.copyLink().catch(reportError); },
   filterByThisCellValue: function() { this.filterByThisCellValue(); },
   duplicateRows: function() { this._duplicateRows().catch(reportError); },
+  convertToNewSheet: function() { this._convertToNewSheet().catch(reportError); },
   openDiscussion: function(ev, payload) {
     const state = typeof payload === 'object' && payload ? payload : null;
     this._openDiscussionAtCursor(state);
@@ -862,6 +863,76 @@ BaseView.prototype._duplicateRows = async function() {
   }
   const result = await this.sendTableAction(action, `Duplicated rows ${rowIds}`);
   return result;
+}
+
+/**
+ * Convert the currently selected grid area to a new sheet
+ */
+BaseView.prototype._convertToNewSheet = async function() {
+  if (this.gristDoc.isReadonly.get() || this.disableEditing()) {
+    return;
+  }
+
+  // Get current selection
+  const selection = this.getSelection();
+
+  if (selection.rowIds.length === 0 || selection.fields.length === 0) {
+    return;
+  }
+
+  // Generate unique table name based on source table
+  const baseTableName = this.tableModel.tableData.tableId;
+
+  let counter = 0;
+  let tableName = `${baseTableName}_extracted${counter > 0 ? counter : ''}`;
+
+  // Ensure uniqueness by checking existing table names
+  const existingTableIds = this.gristDoc.docModel.tables.rowModels.map(t => t.tableId.peek());
+  while (existingTableIds.includes(tableName)) {
+    counter++;
+    tableName = `${baseTableName}_extracted${counter}`;
+  }
+
+  // Prepare column information using the same infrastructure as copy/paste
+  const columns = [];
+  for (const field of selection.fields) {
+    const col = field.column.peek();
+    const colInfo = {
+      id: col.colId.peek(),
+      type: col.type.peek(),
+      isFormula: false,
+      label: field.label() || col.colId.peek()  // Use field.label() for consistent labeling
+    };
+    columns.push(colInfo);
+  }
+
+  // Create new table with columns
+  const newTableResult = await this.gristDoc.docData.sendAction([
+    'AddTable', tableName, columns
+  ]);
+
+  const newTableId = newTableResult.table_id;
+
+  // Prepare data to copy using the same infrastructure as copy/paste
+  const bulkData = {};
+  for (const column of selection.columns) {
+    bulkData[column.colId] = selection.rowIds.map(rowId =>
+      column.rawGetter(rowId)
+    );
+  }
+
+  // Add the data to the new table
+  if (selection.rowIds.length > 0) {
+    await this.gristDoc.docData.sendAction([
+      'BulkAddRecord', newTableId, gutil.arrayRepeat(selection.rowIds.length, null), bulkData
+    ]);
+  }
+
+  // Navigate to the new table
+  const newTableRec = this.gristDoc.docModel.tables.rowModels.find(t => t.tableId.peek() === newTableId);
+  if (newTableRec && newTableRec.primaryViewId.peek()) {
+    await urlState().pushUrl({docPage: newTableRec.primaryViewId.peek()});
+  }
 }
 
 BaseView.prototype.viewSelectedRecordAsCard = function() {

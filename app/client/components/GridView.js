@@ -2052,6 +2052,11 @@ GridView.prototype._duplicateRows = async function() {
   }
 }
 
+GridView.prototype._convertToNewSheet = async function() {
+  const result = await BaseView.prototype._convertToNewSheet.call(this);
+  return result;
+}
+
 GridView.prototype._clearCopySelection = function() {
   this.copySelection(null);
 };
