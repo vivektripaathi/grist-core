@@ -131,6 +131,48 @@ export function createTopBarDoc(owner: MultiHolder, appModel: AppModel, pageMode
         cssHoverCircle.cls('-disabled', use => use(state.isRedoDisabled) || !use(isUndoRedoAvailable)),
         testId('redo'),
       ),
+      // Create sheet from global selection button
+      dom.maybe(pageModel.gristDoc, (gristDoc) =>
+        topBarUndoBtn('Import',
+          dom.on('click', () => allCommands.createSheetFromGlobalSelection.run()),
+          dom.hide(use => use(isSearchOpen)),
+          dom.cls('disabled', (use) => {
+            const globalSel = (gristDoc as any).globalCellSelection;
+            return !globalSel || !use(globalSel.hasSelections);
+          }),
+          dom.style('opacity', (use) => {
+            const globalSel = (gristDoc as any).globalCellSelection;
+            return globalSel && use(globalSel.hasSelections) ? '1' : '0.5';
+          }),
+          dom.style('pointer-events', (use) => {
+            const globalSel = (gristDoc as any).globalCellSelection;
+            return globalSel && use(globalSel.hasSelections) ? 'auto' : 'none';
+          }),
+          hoverTooltip('Create Sheet from Selections', {key: 'topBarBtnTooltip'}),
+          testId('create-sheet-from-global-selection'),
+        )
+      ),
+      // Clear global selection button
+      dom.maybe(pageModel.gristDoc, (gristDoc) =>
+        topBarUndoBtn('Remove',
+          dom.on('click', () => allCommands.clearGlobalSelection.run()),
+          dom.hide(use => use(isSearchOpen)),
+          dom.cls('disabled', (use) => {
+            const globalSel = (gristDoc as any).globalCellSelection;
+            return !globalSel || !use(globalSel.hasSelections);
+          }),
+          dom.style('opacity', (use) => {
+            const globalSel = (gristDoc as any).globalCellSelection;
+            return globalSel && use(globalSel.hasSelections) ? '1' : '0.5';
+          }),
+          dom.style('pointer-events', (use) => {
+            const globalSel = (gristDoc as any).globalCellSelection;
+            return globalSel && use(globalSel.hasSelections) ? 'auto' : 'none';
+          }),
+          hoverTooltip('Clear Selections', {key: 'topBarBtnTooltip'}),
+          testId('clear-global-selection'),
+        )
+      ),
       cssSpacer(),
     ]),
     dom.domComputed((use) => {

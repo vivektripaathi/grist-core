@@ -114,6 +114,9 @@ export type CommandName =
   | 'revertLinks'
   | 'clearLinks'
   | 'clearSectionLinks'
+  | 'addToGlobalSelection'
+  | 'clearGlobalSelection'
+  | 'createSheetFromGlobalSelection'
   | 'transformUpdate'
   | 'clearCopySelection'
   | 'detachEditor'
@@ -709,6 +712,23 @@ export const groups: CommendGroupDef[] = [{
       name: 'clearSectionLinks',
       keys: [],
       desc: 'Clears the section links in the current viewsection'
+    }
+  ],
+}, {
+  group: 'Global Selection',
+  commands: [
+    {
+      name: 'addToGlobalSelection',
+      keys: [],
+      desc: 'Add current selection to global selection'
+    }, {
+      name: 'clearGlobalSelection',
+      keys: [],
+      desc: 'Clear global selection'
+    }, {
+      name: 'createSheetFromGlobalSelection',
+      keys: [],
+      desc: 'Create new sheet from global selections'
     }
   ],
 }, {

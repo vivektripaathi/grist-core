@@ -865,6 +865,8 @@ BaseView.prototype._duplicateRows = async function() {
   return result;
 }
 
+const {SheetCreationUtils} = require('app/client/lib/SheetCreationUtils');
+
 /**
  * Convert the currently selected grid area to a new sheet
  */
@@ -880,58 +882,21 @@ BaseView.prototype._convertToNewSheet = async function() {
     return;
   }
 
-  // Generate unique table name based on source table
-  const baseTableName = this.tableModel.tableData.tableId;
-
-  let counter = 0;
-  let tableName = `${baseTableName}_extracted${counter > 0 ? counter : ''}`;
-
-  // Ensure uniqueness by checking existing table names
-  const existingTableIds = this.gristDoc.docModel.tables.rowModels.map(t => t.tableId.peek());
-  while (existingTableIds.includes(tableName)) {
-    counter++;
-    tableName = `${baseTableName}_extracted${counter}`;
-  }
-
-  // Prepare column information using the same infrastructure as copy/paste
-  const columns = [];
-  for (const field of selection.fields) {
-    const col = field.column.peek();
-    const colInfo = {
-      id: col.colId.peek(),
-      type: col.type.peek(),
-      isFormula: false,
-      label: field.label() || col.colId.peek()  // Use field.label() for consistent labeling
-    };
-    columns.push(colInfo);
-  }
-
-  // Create new table with columns
-  const newTableResult = await this.gristDoc.docData.sendAction([
-    'AddTable', tableName, columns
-  ]);
-
-  const newTableId = newTableResult.table_id;
-
-  // Prepare data to copy using the same infrastructure as copy/paste
-  const bulkData = {};
-  for (const column of selection.columns) {
-    bulkData[column.colId] = selection.rowIds.map(rowId =>
-      column.rawGetter(rowId)
-    );
-  }
-
-  // Add the data to the new table
-  if (selection.rowIds.length > 0) {
-    await this.gristDoc.docData.sendAction([
-      'BulkAddRecord', newTableId, gutil.arrayRepeat(selection.rowIds.length, null), bulkData
-    ]);
-  }
-
-  // Navigate to the new table
-  const newTableRec = this.gristDoc.docModel.tables.rowModels.find(t => t.tableId.peek() === newTableId);
-  if (newTableRec && newTableRec.primaryViewId.peek()) {
-    await urlState().pushUrl({docPage: newTableRec.primaryViewId.peek()});
+  try {
+    // Convert selection to the format needed by SheetCreationUtils
+    const {columns, bulkData} = SheetCreationUtils.convertBaseViewSelection(selection);
+    
+    // Create new sheet using the utility
+    await SheetCreationUtils.createNewSheet(this.gristDoc, {
+      baseTableName: this.tableModel.tableData.tableId,
+      columns,
+      bulkData,
+      navigateToSheet: true
+    });
+    
+  } catch (error) {
+    console.error('Failed to convert to new sheet:', error);
+    throw error;
   }
 }
 

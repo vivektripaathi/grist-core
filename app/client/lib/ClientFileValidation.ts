@@ -34,17 +34,21 @@ function validateNameText(
   // Check for special characters
   const specialCharsRegex = /[!@#$%^&*()+=[\]{}|\\:";'<>?,]/;
   if (!options.allowSpecialChars && specialCharsRegex.test(text)) {
-    errors.push(
-      `${type.charAt(0).toUpperCase() + type.slice(1)} "${text}" contains special characters. `
-    );
+    if (type === 'filename') {
+      errors.push('Contains special characters. Only letters, numbers, hyphens, and underscores are allowed.');
+    } else {
+      errors.push(`Sheet "${text}" contains special characters.`);
+    }
   }
 
   // Check for spaces
   const spaceRegex = /\s/;
   if (!options.allowSpaces && spaceRegex.test(text)) {
-    errors.push(
-      `${type.charAt(0).toUpperCase() + type.slice(1)} "${text}" contains spaces.`
-    );
+    if (type === 'filename') {
+      errors.push('Contains spaces. Please use underscores or hyphens instead of spaces.');
+    } else {
+      errors.push(`Sheet "${text}" contains spaces.`);
+    }
   }
 
   return errors;
@@ -117,7 +121,7 @@ async function validateExcelFile(
 
       if (!options.allowMergedCells && worksheet.hasMerges) {
         result.errors.push(
-          `Sheet "${sheetName}": Contains merged cells. `
+          `Sheet "${sheetName}" contains merged cells.`
         );
       }
     });

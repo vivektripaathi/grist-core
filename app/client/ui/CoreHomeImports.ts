@@ -38,9 +38,9 @@ export async function docImport(app: AppModel, workspaceId: number|"unsaved"): P
     // Create a more professional error message
     const fileName = files[0].name;
     const issues = validationResult.errors
-      .map(error => error.replace(/^File "[^"]*": /, ''))
+      .map(error => error.replace(/^File "[^"]*": /, ''))  // Remove file prefix from each error
       .map(error => `• ${error}`);
-
+    
     const errorMessage = [
       `File "${fileName}" cannot be imported:`,
       ...issues

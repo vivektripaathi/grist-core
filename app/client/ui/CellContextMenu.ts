@@ -42,6 +42,13 @@ export function CellContextMenu(cellOptions: ICellContextMenu, colOptions: IMult
     menuItemCmd(allCommands.contextMenuCopyWithHeaders, t('Copy with headers')),
     menuItemCmd(allCommands.contextMenuPaste, t('Paste'), disableForReadonlyColumn),
     menuDivider(),
+    // Add to global selection option - only show when there are selected cells
+    ...(
+      (numRows > 0 && numColumns > 0) ? [
+        menuItemCmd(allCommands.addToGlobalSelection, t("Add to Selection")),
+        menuDivider(),
+      ] : []
+    ),
     colOptions.isFormula ?
       null :
       menuItemCmd(allCommands.clearValues, nameClearCells, disableForReadonlyColumn),

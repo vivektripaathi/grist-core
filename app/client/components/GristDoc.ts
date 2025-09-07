@@ -14,6 +14,7 @@ import {CursorMonitor, ViewCursorPos} from "app/client/components/CursorMonitor"
 import {DocComm} from 'app/client/components/DocComm';
 import {Drafts} from "app/client/components/Drafts";
 import {EditorMonitor} from "app/client/components/EditorMonitor";
+import {GlobalCellSelection} from 'app/client/components/GlobalCellSelection';
 import {buildDefaultFormLayout} from 'app/client/components/Forms/FormView';
 import GridView from 'app/client/components/GridView';
 import {importFromFile, selectAndImport} from 'app/client/components/Importer';
@@ -241,6 +242,8 @@ export class GristDocImpl extends DisposableWithEvents implements GristDoc {
   public draftMonitor: Drafts;
   // component for keeping track of discarded comments.
   public commentMonitor: CommentMonitor;
+  // Global cell selection manager for cross-sheet selections
+  public globalCellSelection: GlobalCellSelection;
   // will document perform its own navigation (from anchor link)
   public hasCustomNav: Observable<boolean>;
   // Emitter triggered when the main doc area is resized.
@@ -647,6 +650,9 @@ export class GristDocImpl extends DisposableWithEvents implements GristDoc {
       createForm: this._onCreateForm.bind(this),
       pushUndoAction: this._undoStack.pushAction.bind(this._undoStack),
       activateAssistant: this._activateAssistant.bind(this),
+      addToGlobalSelection: this._onAddToGlobalSelection.bind(this),
+      clearGlobalSelection: this._onClearGlobalSelection.bind(this),
+      createSheetFromGlobalSelection: this._onCreateSheetFromGlobalSelection.bind(this),
     }, this, true));
 
     this.userPresenceModel.initialize().catch(reportError);
@@ -730,6 +736,7 @@ export class GristDocImpl extends DisposableWithEvents implements GristDoc {
     this.cursorMonitor = CursorMonitor.create(this, this);
     this.editorMonitor = EditorMonitor.create(this, this);
     this.commentMonitor = CommentMonitor.create(this, this);
+    this.globalCellSelection = GlobalCellSelection.create(this);
 
     // When active section is changed to a chart or custom widget, change the tab in the creator
     // panel to the table.
@@ -1315,6 +1322,68 @@ export class GristDocImpl extends DisposableWithEvents implements GristDoc {
       type: WidgetType.Form,
     });
     commands.allCommands.expandSection.run();
+  }
+
+  /**
+   * Add current cell selection to global selection
+   */
+  private _onAddToGlobalSelection() {
+    const currentView = this.currentView.get();
+    if (!currentView) {
+      return;
+    }
+    
+    // Check if the view has a getSelection method (GridView and DetailView have it)
+    const getSelection = (currentView as any).getSelection;
+    if (!getSelection) {
+      reportError(new UserError('Selection not supported for this view type'));
+      return;
+    }
+    
+    const selection = getSelection.call(currentView);
+    if (!selection || !selection.rowIds.length || !selection.fields.length) {
+      reportError(new UserError('No cells selected'));
+      return;
+    }
+
+    const sheetName = this.viewModel.name.peek();
+    const sectionId = this.viewModel.activeSection.peek().id.peek();
+    const tableId = this.viewModel.activeSection.peek().table.peek().tableId.peek();
+    
+    this.globalCellSelection.addSelection(sheetName, sectionId, tableId, selection);
+    
+    const count = this.globalCellSelection.selections.get().length;
+    reportSuccess(`Added selection to global collection (${count} total)`);
+  }
+
+  /**
+   * Clear all global selections
+   */
+  private _onClearGlobalSelection() {
+    if (!this.globalCellSelection.hasSelections.get()) {
+      reportError('No global selections to clear');
+      return;
+    }
+    
+    this.globalCellSelection.clearSelections();
+    reportSuccess('Global selection cleared');
+  }
+
+  /**
+   * Create new sheet from global selections
+   */
+  private async _onCreateSheetFromGlobalSelection() {
+    if (!this.globalCellSelection.hasSelections.get()) {
+      reportError('No global selections available to create sheet');
+      return;
+    }
+
+    try {
+      await this.globalCellSelection.createNewSheet(this);
+      reportSuccess('New sheet created from global selections');
+    } catch (error) {
+      reportError(error);
+    }
   }
 
   private _onDocChatter(message: CommDocChatter) {
