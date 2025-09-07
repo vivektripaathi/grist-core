@@ -35,9 +35,15 @@ export async function docImport(app: AppModel, workspaceId: number|"unsaved"): P
   });
 
   if (!validationResult.isValid) {
+    // Create a more professional error message
+    const fileName = files[0].name;
+    const issues = validationResult.errors
+      .map(error => error.replace(/^File "[^"]*": /, ''))
+      .map(error => `• ${error}`);
+
     const errorMessage = [
-      'Import validation failed:',
-      ...validationResult.errors.map(error => `• ${error}`)
+      `File "${fileName}" cannot be imported:`,
+      ...issues
     ].join('\n');
 
     // Report the validation error to the user

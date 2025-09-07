@@ -174,6 +174,9 @@ export function reportError(err: Error|string, ev?: ErrorEvent): void {
     } else if (code === 'AUTH_NO_EDIT' || code === 'ACL_DENY') {
       // Show the error as a message
       _notifier.createUserMessage(err.message, {key: code, memos: details?.memos});
+    } else if (message.match(/cannot be imported:/)) {
+      // Show import validation errors as user messages with proper title
+      _notifier.createUserMessage(message, {title: 'Import validation error', level: 'error'});
     } else if (message.match(/\[Sandbox\].*between formula and data/)) {
       // Show nicer error message for summary tables.
       _notifier.createUserMessage(ErrorTooltips.summaryFormulas, {key: 'summary'});
