@@ -866,6 +866,7 @@ BaseView.prototype._duplicateRows = async function() {
 }
 
 const {SheetCreationUtils} = require('app/client/lib/SheetCreationUtils');
+const {showNewSheetNameModal} = require('app/client/ui/NewSheetNameModal');
 
 /**
  * Convert the currently selected grid area to a new sheet
@@ -882,22 +883,23 @@ BaseView.prototype._convertToNewSheet = async function() {
     return;
   }
 
-  try {
-    // Convert selection to the format needed by SheetCreationUtils
-    const {columns, bulkData} = SheetCreationUtils.convertBaseViewSelection(selection);
-    
-    // Create new sheet using the utility
-    await SheetCreationUtils.createNewSheet(this.gristDoc, {
-      baseTableName: this.tableModel.tableData.tableId,
-      columns,
-      bulkData,
-      navigateToSheet: true
-    });
-    
-  } catch (error) {
-    console.error('Failed to convert to new sheet:', error);
-    throw error;
-  }
+  // Prompt for new sheet name
+  showNewSheetNameModal(async (sheetName) => {
+    try {
+      // Convert selection to the format needed by SheetCreationUtils
+    const {columns, bulkData} = SheetCreationUtils.convertBaseViewSelection(selection, this.tableModel);
+      // Create new sheet using the utility
+      await SheetCreationUtils.createNewSheet(this.gristDoc, {
+        baseTableName: sheetName,
+        columns,
+        bulkData,
+        navigateToSheet: true
+      });
+    } catch (error) {
+      console.error('Failed to convert to new sheet:', error);
+      throw error;
+    }
+  }, this.tableModel.tableData.tableId, this.gristDoc);
 }
 
 BaseView.prototype.viewSelectedRecordAsCard = function() {

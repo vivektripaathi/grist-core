@@ -3,6 +3,7 @@ import {ViewFieldRec} from 'app/client/models/entities/ViewFieldRec';
 import {UIRowId} from 'app/plugin/GristAPI';
 import {Computed, Disposable, Observable} from 'grainjs';
 import {SheetCreationUtils} from 'app/client/lib/SheetCreationUtils';
+import {showNewSheetNameModal} from 'app/client/ui/NewSheetNameModal';
 
 /**
  * Interface for a single global cell selection entry
@@ -168,30 +169,28 @@ export class GlobalCellSelection extends Disposable {
       return;
     }
 
-    try {
-      // Convert global selection data to the format needed by SheetCreationUtils
-      const {columns, bulkData} = SheetCreationUtils.convertGlobalSelectionData(formattedData);
-      
-      // Create new sheet using the reusable utility
-      await SheetCreationUtils.createNewSheet(gristDoc, {
-        baseTableName: 'GlobalSelections',
-        columns,
-        bulkData,
-        navigateToSheet: true
-      });
+    showNewSheetNameModal(async (sheetName) => {
+      try {
+        // Convert global selection data to the format needed by SheetCreationUtils
+        const {columns, bulkData} = SheetCreationUtils.convertGlobalSelectionData(formattedData);
+        // Create new sheet using the reusable utility
+        await SheetCreationUtils.createNewSheet(gristDoc, {
+          baseTableName: sheetName,
+          columns,
+          bulkData,
+          navigateToSheet: true
+        });
 
-      const maxRows = Math.max(...formattedData.map(entry => entry.rowCount));
-      const totalColumns = columns.length;
-      
-      console.log(`✅ Created new sheet with ${maxRows} rows and ${totalColumns} columns ` +
-                  `from ${formattedData.length} selections arranged side by side`);
-      
-      // Clear selections after successful sheet creation
-      this.clearSelections();
-      
-    } catch (error) {
-      console.error('❌ Failed to create new sheet:', error);
-      throw error;
-    }
+        const maxRows = Math.max(...formattedData.map(entry => entry.rowCount));
+        const totalColumns = columns.length;
+        console.log(`✅ Created new sheet with ${maxRows} rows and ${totalColumns} columns ` +
+                    `from ${formattedData.length} selections arranged side by side`);
+        // Clear selections after successful sheet creation
+        this.clearSelections();
+      } catch (error) {
+        console.error('❌ Failed to create new sheet:', error);
+        throw error;
+      }
+    }, 'GlobalSelections', gristDoc);
   }
 }

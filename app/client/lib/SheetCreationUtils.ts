@@ -59,10 +59,10 @@ export class SheetCreationUtils {
       // Calculate the number of rows from the first column's data
       const firstColumnData = Object.values(bulkData)[0];
       const numRows = firstColumnData ? firstColumnData.length : 0;
-      
+
       // Create array of nulls for new row IDs
       const rowIds = new Array(numRows).fill(null);
-      
+
       await gristDoc.docModel.docData.sendAction([
         'BulkAddRecord',
         newTableId,
@@ -82,7 +82,7 @@ export class SheetCreationUtils {
   /**
    * Converts BaseView selection data to the format needed for sheet creation
    */
-  public static convertBaseViewSelection(selection: any): {columns: IColumnInfo[], bulkData: IBulkData} {
+  public static convertBaseViewSelection(selection: any, tableModel: any): {columns: IColumnInfo[], bulkData: IBulkData} {
     const columns: IColumnInfo[] = [];
     const bulkData: IBulkData = {};
 
@@ -104,9 +104,8 @@ export class SheetCreationUtils {
     // Fill data for each row
     for (const rowId of selection.rowIds) {
       for (let i = 0; i < selection.fields.length; i++) {
-        const field = selection.fields[i];
         const colId = colIds[i];
-        const cellValue = field.column().rawData().getValue(rowId);
+        const cellValue = tableModel.tableData.getValue(rowId, colId);
         bulkData[colId].push(cellValue);
       }
     }
@@ -152,7 +151,7 @@ export class SheetCreationUtils {
       for (const header of entry.headers) {
         let columnId = `${prefix}${header}`;
         let columnLabel = `${prefix}${header}`;
-        
+
         // Handle duplicate column IDs by adding a counter
         let counter = 1;
         const baseColumnId = columnId;
